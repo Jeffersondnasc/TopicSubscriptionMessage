@@ -1,0 +1,58 @@
+using Azure.Identity;
+using Azure.Messaging.ServiceBus;
+
+namespace ConsoleApp1
+{
+    internal class Program
+    {
+        static async Task Main(string[] args)
+        {
+            try
+            {
+                Program program = new Program();
+                await program.TopicMessage();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+        }
+
+        public async Task TopicMessage()
+        {
+            ServiceBusClient client;
+            ServiceBusSender sender;
+
+            string fullyQualifiedNamespace = "Endereço do Service Bus que possui o tópico";
+            string topicName = "Nome_topico_criado_portal_Azure";
+
+            client = new ServiceBusClient(
+                fullyQualifiedNamespace,
+                new DefaultAzureCredential());
+            sender = client.CreateSender(topicName);
+
+            using ServiceBusMessageBatch messageBatch = await sender.CreateMessageBatchAsync();
+
+            if (!messageBatch.TryAddMessage(new ServiceBusMessage($"Message ")))
+            {
+                throw new Exception($"The message is too large to fit in the batch.");
+            }
+
+            try
+            {
+                await sender.SendMessagesAsync(messageBatch);
+                Console.WriteLine($"A batch of {numOfMessages} messages has been published to the topic.");
+            }
+            finally
+            {
+                // Calling DisposeAsync on client types is required to ensure that network
+                // resources and other unmanaged objects are properly cleaned up.
+                await sender.DisposeAsync();
+                await client.DisposeAsync();
+            }
+
+            Console.WriteLine("Press any key to end the application");
+            Console.ReadKey();
+        }
+    }
+}
